@@ -447,6 +447,15 @@ export interface InferenceSessionFactory {
    */
   create(buffer: Uint8Array, options?: InferenceSession.SessionOptions): Promise<InferenceSession>;
 
+  /**
+   * Create a new inference session and load model asynchronously from a Uint8Array.
+   *
+   * @param buffer - A Promise<Uint8Array> representation of an ONNX model.
+   * @param options - specify configuration for creating a new inference session.
+   * @returns A promise that resolves to an InferenceSession object.
+   */
+  create(buffer: Promise<Uint8Array>, options?: InferenceSession.SessionOptions): Promise<InferenceSession>;
+
   // #endregion
 }
 

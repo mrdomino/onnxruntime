@@ -129,22 +129,23 @@ export class InferenceSession implements InferenceSessionInterface {
   static create(buffer: ArrayBufferLike, byteOffset: number, byteLength?: number, options?: SessionOptions):
       Promise<InferenceSessionInterface>;
   static create(buffer: Uint8Array, options?: SessionOptions): Promise<InferenceSessionInterface>;
+  static create(buffer: Promise<Uint8Array>, options?: SessionOptions): Promise<InferenceSessionInterface>;
   static async create(
-      arg0: string|ArrayBufferLike|Uint8Array, arg1?: SessionOptions|number, arg2?: number,
+      arg0: string|ArrayBufferLike|Uint8Array|Promise<Uint8Array>, arg1?: SessionOptions|number, arg2?: number,
       arg3?: SessionOptions): Promise<InferenceSessionInterface> {
     // either load from a file or buffer
-    let filePathOrUint8Array: string|Uint8Array;
+    let filePathOrUint8ArrayPromise: string|Promise<Uint8Array>;
     let options: SessionOptions = {};
 
     if (typeof arg0 === 'string') {
-      filePathOrUint8Array = arg0;
+      filePathOrUint8ArrayPromise = arg0;
       if (typeof arg1 === 'object' && arg1 !== null) {
         options = arg1;
       } else if (typeof arg1 !== 'undefined') {
         throw new TypeError('\'options\' must be an object.');
       }
-    } else if (arg0 instanceof Uint8Array) {
-      filePathOrUint8Array = arg0;
+    } else if (arg0 instanceof Uint8Array || arg0 instanceof (Promise)) {
+      filePathOrUint8ArrayPromise = Promise.resolve(arg0);
       if (typeof arg1 === 'object' && arg1 !== null) {
         options = arg1;
       } else if (typeof arg1 !== 'undefined') {
@@ -186,7 +187,7 @@ export class InferenceSession implements InferenceSessionInterface {
       } else if (typeof arg1 !== 'undefined') {
         throw new TypeError('\'options\' must be an object.');
       }
-      filePathOrUint8Array = new Uint8Array(buffer, byteOffset, byteLength);
+      filePathOrUint8ArrayPromise = Promise.resolve(new Uint8Array(buffer, byteOffset, byteLength));
     } else {
       throw new TypeError('Unexpected argument[0]: must be \'path\' or \'buffer\'.');
     }
@@ -195,7 +196,7 @@ export class InferenceSession implements InferenceSessionInterface {
     const eps = options.executionProviders || [];
     const backendHints = eps.map(i => typeof i === 'string' ? i : i.name);
     const backend = await resolveBackend(backendHints);
-    const handler = await backend.createInferenceSessionHandler(filePathOrUint8Array, options);
+    const handler = await backend.createInferenceSessionHandler(filePathOrUint8ArrayPromise, options);
     return new InferenceSession(handler);
   }
 

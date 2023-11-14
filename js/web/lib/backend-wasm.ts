@@ -42,12 +42,13 @@ export class OnnxruntimeWebAssemblyBackend implements Backend {
   }
   createInferenceSessionHandler(path: string, options?: InferenceSession.SessionOptions):
       Promise<InferenceSessionHandler>;
-  createInferenceSessionHandler(buffer: Uint8Array, options?: InferenceSession.SessionOptions):
+  createInferenceSessionHandler(buffer: Promise<Uint8Array>, options?: InferenceSession.SessionOptions):
       Promise<InferenceSessionHandler>;
-  async createInferenceSessionHandler(pathOrBuffer: string|Uint8Array, options?: InferenceSession.SessionOptions):
-      Promise<InferenceSessionHandler> {
+  async createInferenceSessionHandler(
+      pathOrBuffer: string|Promise<Uint8Array>,
+      options?: InferenceSession.SessionOptions): Promise<InferenceSessionHandler> {
     const handler = new OnnxruntimeWebAssemblySessionHandler();
-    await handler.loadModel(pathOrBuffer, options);
+    await handler.loadModel(await Promise.resolve(pathOrBuffer), options);
     return Promise.resolve(handler);
   }
 }
