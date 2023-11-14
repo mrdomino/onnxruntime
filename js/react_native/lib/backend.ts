@@ -47,12 +47,12 @@ class OnnxruntimeSessionHandler implements InferenceSessionHandler {
   #inferenceSession: Binding.InferenceSession;
   #key: string;
 
-  #pathOrBuffer: string|Uint8Array;
+  #pathOrBuffer: string|Promise<Uint8Array>;
 
   inputNames: string[];
   outputNames: string[];
 
-  constructor(pathOrBuffer: string|Uint8Array) {
+  constructor(pathOrBuffer: string|Promise<Uint8Array>) {
     this.#inferenceSession = binding;
     this.#pathOrBuffer = pathOrBuffer;
     this.#key = '';
@@ -73,7 +73,7 @@ class OnnxruntimeSessionHandler implements InferenceSessionHandler {
         if (!this.#inferenceSession.loadModelFromBlob) {
           throw new Error('Native module method "loadModelFromBlob" is not defined');
         }
-        const modelBlob = jsiHelper.storeArrayBuffer(this.#pathOrBuffer.buffer);
+        const modelBlob = jsiHelper.storeArrayBuffer((await this.#pathOrBuffer).buffer);
         results = await this.#inferenceSession.loadModelFromBlob(modelBlob, options);
       }
       // resolve promise if onnxruntime session is successfully created
@@ -165,8 +165,9 @@ class OnnxruntimeBackend implements Backend {
     return Promise.resolve();
   }
 
-  async createInferenceSessionHandler(pathOrBuffer: string|Uint8Array, options?: InferenceSession.SessionOptions):
-      Promise<InferenceSessionHandler> {
+  async createInferenceSessionHandler(
+      pathOrBuffer: string|Promise<Uint8Array>,
+      options?: InferenceSession.SessionOptions): Promise<InferenceSessionHandler> {
     const handler = new OnnxruntimeSessionHandler(pathOrBuffer);
     await handler.loadModel(options || {});
     return handler;
