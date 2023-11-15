@@ -6,9 +6,17 @@ import {Backend, InferenceSession, InferenceSessionHandler, SessionHandler} from
 import {Binding, binding} from './binding';
 
 class OnnxruntimeSessionHandler implements InferenceSessionHandler {
-  constructor(private inferenceSession: Binding.InferenceSession) {
-    this.inputNames = this.inferenceSession.inputNames;
-    this.outputNames = this.inferenceSession.outputNames;
+  #inferenceSession: Binding.InferenceSession;
+
+  constructor(pathOrBuffer: string|Uint8Array, options: InferenceSession.SessionOptions) {
+    this.#inferenceSession = new binding.InferenceSession();
+    if (typeof pathOrBuffer === 'string') {
+      this.#inferenceSession.loadModel(pathOrBuffer, options);
+    } else {
+      this.#inferenceSession.loadModel(pathOrBuffer.buffer, pathOrBuffer.byteOffset, pathOrBuffer.byteLength, options);
+    }
+    this.inputNames = this.#inferenceSession.inputNames;
+    this.outputNames = this.#inferenceSession.outputNames;
   }
 
   async dispose(): Promise<void> {
@@ -27,8 +35,16 @@ class OnnxruntimeSessionHandler implements InferenceSessionHandler {
 
   async run(feeds: SessionHandler.FeedsType, fetches: SessionHandler.FetchesType, options: InferenceSession.RunOptions):
       Promise<SessionHandler.ReturnType> {
-    await Promise.resolve();
-    return await this.inferenceSession.run(feeds, fetches, options);
+    return new Promise((resolve, reject) => {
+      process.nextTick(() => {
+        try {
+          resolve(this.#inferenceSession.run(feeds, fetches, options));
+        } catch (e) {
+          // reject if any error is thrown
+          reject(e);
+        }
+      });
+    });
   }
 }
 
@@ -37,19 +53,18 @@ class OnnxruntimeBackend implements Backend {
     return Promise.resolve();
   }
 
-  async createInferenceSessionHandler(
-      pathOrPromise: string|Promise<Uint8Array>,
-      options?: InferenceSession.SessionOptions): Promise<InferenceSessionHandler> {
-    await Promise.resolve();
-    const inferenceSession = new binding.InferenceSession();
-    const finalOptions = options || {};
-    if (typeof pathOrPromise === 'string') {
-      inferenceSession.loadModel(pathOrPromise, finalOptions);
-    } else {
-      const array = await pathOrPromise;
-      inferenceSession.loadModel(array.buffer, array.byteOffset, array.byteLength, finalOptions);
-    }
-    return new OnnxruntimeSessionHandler(inferenceSession);
+  async createInferenceSessionHandler(pathOrBuffer: string|Uint8Array, options?: InferenceSession.SessionOptions):
+      Promise<InferenceSessionHandler> {
+    return new Promise((resolve, reject) => {
+      process.nextTick(() => {
+        try {
+          resolve(new OnnxruntimeSessionHandler(pathOrBuffer, options || {}));
+        } catch (e) {
+          // reject if any error is thrown
+          reject(e);
+        }
+      });
+    });
   }
 }
 
