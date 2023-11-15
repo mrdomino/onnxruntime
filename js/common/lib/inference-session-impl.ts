@@ -3,8 +3,10 @@
 
 import {resolveBackend} from './backend-impl.js';
 import {InferenceSessionHandler} from './backend.js';
-import {InferenceSession as InferenceSessionInterface} from './inference-session.js';
-import type {MaybePromise} from './inference-session.js';
+import type {
+  InferenceSession as InferenceSessionInterface,
+  MaybePromise,
+} from './inference-session.js';
 import {OnnxValue} from './onnx-value.js';
 import {Tensor} from './tensor.js';
 
